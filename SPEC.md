@@ -147,13 +147,6 @@ acprock [--port 9999] [--harness-cmd kiro-cli] [--config ~/.acprock/config.toml]
 
 The Docker image's entrypoint is `acprock`.
 
-M3 adds read-only diagnostic flags rather than subcommands:
-
-```
-acprock --doctor                   # (M3) probe PATH + registry, print usable harnesses, exit
-acprock --route <model-id>         # (M3) print which harness(es) would serve a model, exit
-```
-
 ## Milestones
 
 ### M1 — Mantle over kiro-cli, one model
@@ -203,10 +196,6 @@ Tests:
 
 Scope:
 - Fetch + cache `registry.json` (TTL 1h, cache at `~/.acprock/registry.json`).
-- `acprock --doctor`: probe PATH plus the registry, print installed /
-  launchable agents and the model families each claims, then exit.
-- `acprock --route <model-id>`: print the resolved harness for a given
-  (normalized) model ID, then exit.
 - Auto-pick harness per request based on the normalized model ID matched
   against the harness routing table, which is keyed on Bedrock/Mantle
   model-ID patterns → harness.
@@ -257,5 +246,5 @@ Tracked as open items, not part of this spec:
   accepted by both the Mantle OpenAI-compatible endpoint *and* runs on
   kiro-cli. Claude Sonnet 4.5 family is the starting assumption.
 - **Unusable registry entries**: not every agent in the ACP registry will
-  run in every environment (auth, network, license). `--doctor` must
+  run in every environment (auth, network, license). Discovery must
   distinguish "listed" from "launchable here".
