@@ -8,6 +8,7 @@ import com.openai.models.ChatModel
 import com.openai.models.chat.completions.ChatCompletionCreateParams
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
+import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertTrue
 
@@ -17,14 +18,13 @@ import kotlin.test.assertTrue
  */
 class MantleIntegrationTest {
     @Test
-    fun `openai java client round-trip via kiro-cli`() {
+    fun `openai java client round-trip via kiro-cli`() = runBlocking {
         val harnessCmd = System.getProperty("acprock.harness.cmd", "kiro-cli")
         val bridge = AcpBridge(HarnessSpec(command = harnessCmd, args = listOf("acp")))
 
         val server = embeddedServer(CIO, port = 0) { acprockModule(bridge) }.start(wait = false)
         try {
-            val resolver = server.engine.resolvedConnectors()
-            val port = resolver.first().port
+            val port = server.engine.resolvedConnectors().first().port
             val client = OpenAIOkHttpClient.builder()
                 .baseUrl("http://localhost:$port/mantle")
                 .apiKey("dev")
@@ -40,7 +40,7 @@ class MantleIntegrationTest {
             assertTrue(text.isNotBlank(), "expected non-empty assistant content")
         } finally {
             server.stop(gracePeriodMillis = 100, timeoutMillis = 500)
-            kotlinx.coroutines.runBlocking { bridge.close() }
+            bridge.close()
         }
     }
 }

@@ -32,6 +32,33 @@ Bedrock, so:
    Bedrock/Mantle request, appended to whatever the harness insists on
    leaving in place.
 
+### Raw-mode status as of today
+
+The ACP spec (v0.18 at the time of writing) has **no standard mechanism**
+for a client to suppress or replace a harness's default system prompt:
+
+- `initialize`, `session/new`, and `session/prompt` have no system-prompt
+  field. `SessionCreationParameters` carries only `cwd`, `mcpServers`,
+  and `additionalDirectories`.
+- Capability negotiation has no "system prompt override" bit.
+- The `_meta` field on every request is the only extension point, and
+  whether a harness honors anything in it is harness-specific.
+
+Known harness situations:
+
+- **Claude Code** exposes `--system-prompt` / `--append-system-prompt` on
+  its plain CLI. These are not reachable via Claude Code's ACP mode today.
+- **Kiro CLI** (`kiro-cli acp`): no system-prompt knobs found.
+- **Codex** ACP mode: no system-prompt knobs found.
+
+This is a protocol-level gap, not an acprock bug. We will file (or track)
+upstream ACP issues proposing a first-class way for clients to request
+raw-mode prompting, and we will opportunistically support any harness-
+specific `_meta` extension that appears. Until then, documented
+divergence on a per-harness basis is the best we can do, and the user is
+expected to account for the harness's default behavior when comparing
+against real Bedrock.
+
 ## Non-goals
 
 - Reproducing Bedrock IAM, SigV4 verification, Guardrails, Knowledge Bases,

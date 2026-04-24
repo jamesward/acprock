@@ -17,7 +17,7 @@ plugins {
 }
 
 kotlin {
-    jvmToolchain(25)
+    jvmToolchain(21)
 }
 
 application {
@@ -107,7 +107,7 @@ graalvmNative {
                 buildArgs.add("-H:+StripDebugInfo")
             }
             javaLauncher = javaToolchains.launcherFor {
-                languageVersion = JavaLanguageVersion.of(25)
+                languageVersion = JavaLanguageVersion.of(21)
                 vendor = JvmVendorSpec.GRAAL_VM
             }
         }
@@ -138,7 +138,7 @@ tasks.named("nativeCompile") {
 
 jib {
     from {
-        image = "eclipse-temurin:25-jre"
+        image = "eclipse-temurin:21-jre"
         platforms {
             platform {
                 architecture = "amd64"

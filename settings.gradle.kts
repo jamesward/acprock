@@ -1,7 +1,11 @@
 pluginManagement {
     repositories {
-        gradlePluginPortal()
+        // Prefer Maven Central for plugins so the build is resilient to
+        // plugin-portal CDN flakiness. Portal stays as a fallback for the
+        // few plugins whose marker is not on Maven Central (currently:
+        // io.ktor.plugin, jib).
         mavenCentral()
+        gradlePluginPortal()
     }
 }
 
@@ -14,8 +18,4 @@ dependencyResolutionManagement {
     repositories {
         mavenCentral()
     }
-}
-
-plugins {
-    id("org.gradle.toolchains.foojay-resolver-convention").version("1.0.0")
 }
