@@ -1,8 +1,9 @@
 # acprock — Spec
 
-A Kotlin CLI + Docker server that presents the AWS **Bedrock Converse** and
-**Bedrock Mantle** (OpenAI-compatible) APIs on localhost and proxies every
-call to a locally-running **Agent Client Protocol** (ACP) agent harness.
+A Kotlin server (packaged as a native CLI and a Docker image) that presents
+the AWS **Bedrock Converse** and **Bedrock Mantle** (OpenAI-compatible)
+APIs on localhost and proxies every call to a locally-running **Agent
+Client Protocol** (ACP) agent harness.
 
 The goal is drop-in local-dev substitution for Bedrock: production code
 targets real Bedrock, dev code re-points `endpointUrl` / `base-url` at
@@ -21,8 +22,8 @@ and response shapes.
 
 ## Consumer experience
 
-A single `acprock serve` command boots a Ktor server (default port `9999`)
-that exposes two path prefixes:
+Running `acprock` boots a Ktor server (default port `9999`) that exposes
+two path prefixes:
 
 ```
 http://localhost:9999/
@@ -122,7 +123,7 @@ acprock/
 │   ├── build.gradle.kts        # ktor-server, clikt, acp-sdk, graalvm, jib
 │   └── src/
 │       ├── main/kotlin/com/jamesward/acprock/
-│       │   ├── Cli.kt          # clikt entrypoint, `acprock serve [...]`
+│       │   ├── Cli.kt          # clikt entrypoint, `acprock [flags]` (server-only)
 │       │   ├── Server.kt       # Ktor app, mounts /mantle (M1), /converse (M2)
 │       │   ├── acp/            # thin wrapper over acp-sdk (spawn, session cache)
 │       │   └── mantle/         # OpenAI chat-completions <-> ACP codec
@@ -132,26 +133,33 @@ acprock/
 │       └── test/kotlin/...
 │           └── MantleIntegrationTest.kt   # openai-java + Spring AI against localhost
 │           └── ConverseIntegrationTest.kt # (M2) BedrockRuntimeClient against localhost
-├── Dockerfile / jib config     # `acprock serve` as PID 1
+├── Dockerfile / jib config     # `acprock` as PID 1
 ├── SPEC.md  DEV.md  README.md
 ```
 
 ## CLI surface
 
+`acprock` has no subcommands. Invoking it runs the server.
+
 ```
-acprock serve [--port 9999] [--harness-cmd kiro-cli] [--config ~/.acprock/config.toml]
-acprock doctor                     # (M3) probe PATH + registry, list usable harnesses
-acprock route <model-id>           # (M3) show which harness(es) would serve a model
+acprock [--port 9999] [--harness-cmd kiro-cli] [--config ~/.acprock/config.toml]
 ```
 
-`acprock serve` is what the Docker image runs by default.
+The Docker image's entrypoint is `acprock`.
+
+M3 adds read-only diagnostic flags rather than subcommands:
+
+```
+acprock --doctor                   # (M3) probe PATH + registry, print usable harnesses, exit
+acprock --route <model-id>         # (M3) print which harness(es) would serve a model, exit
+```
 
 ## Milestones
 
 ### M1 — Mantle over kiro-cli, one model
 
 Scope:
-- `acprock serve` boots Ktor on `:9999`.
+- `acprock` boots Ktor on `:9999`.
 - `POST /mantle/v1/chat/completions`, non-streaming **and** SSE streaming.
 - Single hardcoded harness: spawn `kiro-cli` via `--harness-cmd` (default `kiro-cli`).
 - Single target model: whichever Claude model kiro-cli runs through Bedrock
@@ -195,10 +203,10 @@ Tests:
 
 Scope:
 - Fetch + cache `registry.json` (TTL 1h, cache at `~/.acprock/registry.json`).
-- `acprock doctor`: probe PATH plus the registry, print installed /
-  launchable agents and the model families each claims.
-- `acprock route <model-id>`: print the resolved harness for a given
-  (normalized) model ID.
+- `acprock --doctor`: probe PATH plus the registry, print installed /
+  launchable agents and the model families each claims, then exit.
+- `acprock --route <model-id>`: print the resolved harness for a given
+  (normalized) model ID, then exit.
 - Auto-pick harness per request based on the normalized model ID matched
   against the harness routing table, which is keyed on Bedrock/Mantle
   model-ID patterns → harness.
@@ -249,5 +257,5 @@ Tracked as open items, not part of this spec:
   accepted by both the Mantle OpenAI-compatible endpoint *and* runs on
   kiro-cli. Claude Sonnet 4.5 family is the starting assumption.
 - **Unusable registry entries**: not every agent in the ACP registry will
-  run in every environment (auth, network, license). `doctor` must
+  run in every environment (auth, network, license). `--doctor` must
   distinguish "listed" from "launchable here".
