@@ -10,6 +10,28 @@ targets real Bedrock, dev code re-points `endpointUrl` / `base-url` at
 acprock and nothing else changes — same SDKs, same model IDs, same request
 and response shapes.
 
+## Guiding principle: match Bedrock behavior
+
+We aim to reproduce Bedrock's observable behavior as closely as possible
+given that inference is actually happening inside an agent harness. The
+harness's own system prompt, default tool set, and opinionated
+post-processing are the primary sources of divergence from "raw"
+Bedrock, so:
+
+1. **Prefer a raw / plain-model mode** on the underlying harness whenever
+   one exists. Many code assistants expose a flag or mode that strips
+   the harness's default system prompt and tools, leaving something close
+   to a raw model call. For any harness we support, we detect and use
+   that mode by default, falling back to the harness's normal mode only
+   if raw is unavailable.
+2. **Document divergence** per harness in the harness routing table. If
+   a harness cannot be put into raw mode, we warn on startup that
+   responses will carry harness flavor.
+3. **Never silently add our own system prompt** on the acprock side. The
+   only system text the agent sees is what the caller supplied in the
+   Bedrock/Mantle request, appended to whatever the harness insists on
+   leaving in place.
+
 ## Non-goals
 
 - Reproducing Bedrock IAM, SigV4 verification, Guardrails, Knowledge Bases,
@@ -17,8 +39,8 @@ and response shapes.
 - Running inference ourselves. acprock is strictly a protocol bridge.
 - Cross-host networking. This is a localhost dev tool.
 - Byte-for-byte response parity with Bedrock. The harness is the inference
-  engine and its own system prompt, default tools, and model choice will
-  influence output.
+  engine; see the "Match Bedrock behavior" principle above for our
+  strategy.
 
 ## Consumer experience
 
@@ -98,11 +120,19 @@ Cloned from [`jamesward/acp-web-gateway`](https://github.com/jamesward/acp-web-g
 - Kotlin **2.3.20**, Java **25** toolchain
 - Ktor **3.4.2** (server + client, CIO engine)
 - [clikt](https://github.com/ajalt/clikt) for the CLI
-- `com.agentclientprotocol:acp-sdk:0.18.1`
+- `com.agentclientprotocol:acp:0.18.1` (JVM; see migration note below)
 - **GraalVM native-image** for the CLI (`-Os`, `--gc=epsilon`, `--no-fallback`)
 - **Jib** for the Docker image (`eclipse-temurin:25-jre`, amd64+arm64)
 - `gitVersion()` for versioning, `stage` task → `:app:installDist`
 - `logback`, `kotlinx.serialization`
+
+**Kotlin/Native migration.** The current ACP Kotlin SDK only publishes a
+JVM target, so the CLI ships as a GraalVM native-image. Once the SDK
+(or a fork) publishes a Kotlin/Native target, we plan to switch to
+Kotlin/Native compilation for the CLI — dropping the JVM toolchain and
+GraalVM dependency, and producing a smaller, faster-starting single-file
+binary. The Ktor server and Mantle/Converse codecs are already
+written against common Kotlin APIs to make this swap mechanical.
 
 The Converse proxy structure (Ktor data classes, content negotiation,
 `POST /model/{modelId}/converse`) follows
